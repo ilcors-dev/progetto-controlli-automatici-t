@@ -5,6 +5,8 @@
 % Straccali Leonardo                                                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+clear all; close all; clc
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PARAMETRI DEL PROGETTO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 gamma_1 = 0.75;
 gamma_2 = 0.15;
@@ -29,6 +31,8 @@ omega_e = 30;
 % delta_2*omega -> modella l'attrito nel motore
 % delta_3*omega^2 -> descrive la resistenza dell'aria
 
+%% PUNTO 1 - Sistema in forma di stato
+
 x_2e = omega_e;
 x_1e = (delta_2 * x_2e + delta_3*x_2e^2) / delta_1;
 
@@ -48,32 +52,188 @@ B = [beta*gamma_1*sin(beta*u_e-phi); 0];
 C = [0, 1];
 D = 0;
 
-
-%% Funzione di trasferimento
+%% PUNTO 2 - Funzione di trasferimento
 s = tf('s');
-[N,D]=ss2tf(A, B, C, D);
-G=tf(N,D);
+[NS, DS] = ss2tf(A, B, C, D);
+GG = tf(NS, DS);
 
-if 0 
-    G
-    pole(G)
+% oppure facendo i conti..
+% sIA = [s+4.5, -1.2*10e-4;
+%       -1500 ,  s+0.07];
+
+% cof = [s+0.07  , 1500;
+%       1.2*10e-4, s+4.5];
+   
+% adj = transpose(cof);
+
+% check_N = (C*adj*B);
+% check_D = ((s+4.5)*(s+0.07)) - (+1.2*1e-4*-1500);
+
+% G_check = check_N / check_D
+GG_poles = pole(GG);
+
+% mostra la funzione di trasferimento e i poli
+if 0
+    GG
+    GG_poles
+%    G_check;
+%    pole(G_check);
     return;
 end
 
-zpk(G);
+%% Diagramma di Bode di G(s)
 
 % Definizione dell'intervallo di frequenze del diagramma di Bode
-omega_plot_min=10^(-2);
-omega_plot_max=10^5;
+omega_plot_min=10e-2;
+omega_plot_max=10e5;
 
-% Il diagramma di Bode presenta anche le limitazioni per il disturbo
-% di misura (zona gialla)
-figure();
-patch([omega_e,omega_plot_max,omega_plot_max,omega_e],[-29.9,-29.9,100,100],'y','FaceAlpha',0.3,'EdgeAlpha',0);
+figure(1);
+bode(GG,{omega_plot_min,omega_plot_max});
+grid on, zoom on;
+
+% return;
+
+%% PUNTO 3 - Progetto di un regolatore
+% SPECIFICHE
+% 1) Errore a regime |e∞|≤e* = 0.01 in risposta a un gradino w(t)=9·1(t) e d(t)=8·1(t)
+% 2) Per garantire una certa robustezza del sistema si deve avere un margine di fase Mf ≥ 55°.
+% 3) Il sistema può accettare una sovraelongazione percentuale al massimo dell%5% : S% ≤ 5%.
+% 4) Il tempo di assestamento all'ε% = 5% deve essere inferiore al valore fissato: Ta,ε = 0.08s.
+% 5) Il disturbo sull'uscita d(t), con una banda limitata nel range di pulsazioni [0,0.05], deve essere abbattutto di almeno 55 dB.
+% 6) Il rumore di misura n(t), con una banda limitata nel range di pulsazioni [8 · 10^3, 2 · 10^6], deve essere abbattutto di almeno 45 dB.
+
+% PUNTO 1
+% ampiezze gradini
+WW = 9;
+DD = 8;
+
+% errore a regime 
+e_star = 0.01;
+
+% PUNTO 2
+Mf_spec = 55;
+
+% PUNTO 3 & 4
+% Sovraelongazione massima e tempo di assestamento all'5%
+s_100_spec = 0.05;
+T_al_spec = 0.08;
+
+% PUNTO 5
+% attenuazione disturbo sull'uscita
+A_d = 55;
+omega_d_MAX = 0.05;
+
+% PUNTO 6
+% attenuazione disturbo di misura
+A_n = 45;
+omega_n_MIN = 1e3;
+omega_n_MAX = 1e6;
+
+%% Regolatore statico
+
+% valore minimo prescritto per L(0)
+% sappiamo che e_inf = (D + W) / (1 + mu)
+% mu = mu_s*mu_g dove mu_g è fisso ed è dato da G(s)
+% pertanto mu = (D + W) / e_star - 1
+% mu = (DD + WW) / e_star - 1;
+
+% per trovaare mu_g è necessario riscrivere G(s) come
+% G(s) = mu_g / ((1+T_1s)*(1+T_2s)) dove
+% T_1s e T_2s sono i poli trovati sotto forma di costanti di tempo
+% T_1s = -1 / GG_poles(1);
+% T_2s = -1 / GG_poles(2);
+
+% eguagliando le G(s) trovate possiamo ricavare mu_g
+% G(s) = 123.1 / (s^2+4.57s+0.495) = mu_g/((s-4.458)(s-0.111))
+% mu_g = 123.1*((s-4.458)(s-0.111))/(s^2+4.57s+0.495)
+% mu_g = 123.1 * (s-4.458)*(s-0.111)/(s^2+4.57s+0.495);
+
+mu_s = (DD+WW)/(e_star)-1;
+
+% L(s)=R(s)G(s) -> mu=L(0)=R(0)G(0) -> R(0)=mu/G(0)
+% guadagno minimo del regolatore ottenuto come L(0)/G(0)
+G_0 = abs(evalfr(GG,0));
+RR_s = mu_s / G_0; % RR_s = 5.88
+
+% Sistema esteso
+GG_e = RR_s*GG;
+
+
+%% Diagrammi di Bode di Ge con specifiche
+
+figure(2);
 hold on;
-[Mag,phase,w]=bode(G,{omega_plot_min,omega_plot_max});
-margin(Mag,phase,w);
-grid on;
-hold off;
-title("Funzione di trasferimento iniziale");
-% Come si nota G(s) attraversa la zona proibita 
+
+% Calcolo specifiche S% => Margine di fase
+xi = Mf_spec;
+S_100 = 100*exp(-pi*xi/sqrt(1-xi^2))
+Mf_spec = xi*100; % Mf_spec = 83
+
+% Grafico dello sovraelongazione percentuale per trovare xi graficamente
+if 0
+   figure(10)
+   xi_plot = 1e-4 : 1e-4 : 1;
+   S_100_plot = 100*exp(-pi*xi_plot./sqrt(1-xi_plot.^2));
+   plot(xi_plot, S_100_plot, 'MarkerIndices', 10);
+   xlabel('Smorzamento (ξ)');
+   ylabel('Sovraelongazione percentuale (S%)');
+   grid on, zoom on
+   return;
+end
+
+% Disegna diagrammi di Bode di G_e con i margini di stabilità ed esce
+% Impostare a 0 per i diagrammi con le specifiche
+% if 1
+%     margin(GG_e);
+%     grid on, zoom on;
+%     return;
+% end
+
+% % Specifiche su d
+% omega_d_min = 0.0001; % lower bound per il plot
+% Bnd_d_x = [omega_d_min; omega_d_MAX; omega_d_MAX; omega_d_min];
+% Bnd_d_y = [A_d; A_d; -150; -150];
+% patch(Bnd_d_x, Bnd_d_y,'r','FaceAlpha',0.2,'EdgeAlpha',0);
+
+% % Specifiche su n
+% Bnd_n_x = [omega_n_min; omega_n_MAX; omega_n_MAX; omega_n_min];
+% Bnd_n_y = [-A_n; -A_n; 100; 100];
+% patch(Bnd_n_x, Bnd_n_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+
+% % Specifiche tempo d'assestamento (minima pulsazione di taglio)
+% omega_Ta_min = 1e-4; % lower bound per il plot
+% omega_Ta_MAX = 460/(Mf_spec*T_a1_spec); % omega_c >= 460/(Mf*T^*) ~ 3.69
+% Bnd_Ta_x = [omega_Ta_min; omega_Ta_MAX; omega_Ta_MAX; omega_Ta_min];
+% Bnd_Ta_y = [0; 0; -150; -150];
+% patch(Bnd_Ta_x, Bnd_Ta_y,'b','FaceAlpha',0.2,'EdgeAlpha',0);
+
+% % Legenda colori
+% Legend_mag = ["A_d"; "A_n"; "\omega_{c,min}"; "G(j\omega)"];
+% legend(Legend_mag);
+
+% % Plot Bode con margini di stabilità
+% margin(GG_e,{omega_plot_min,omega_plot_max});
+% grid on; zoom on;
+
+
+
+% % Specifiche sovraelongazione (margine di fase)
+% omega_c_min = omega_Ta_MAX;
+% omega_c_MAX = omega_n_min;
+
+% phi_spec = Mf_spec - 180;
+% phi_low = -270; % lower bound per il plot
+
+% Bnd_Mf_x = [omega_c_min; omega_c_MAX; omega_c_MAX; omega_c_min];
+% Bnd_Mf_y = [phi_spec; phi_spec; phi_low; phi_low];
+% patch(Bnd_Mf_x, Bnd_Mf_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+% hold on;
+
+% % Legenda colori
+% Legend_arg = ["G(j\omega)"; "M_f"];
+% legend(Legend_arg);
+
+% % STOP qui per le specifiche
+% if 1
+%     return;
+% end
