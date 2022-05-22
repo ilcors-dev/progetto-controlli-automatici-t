@@ -12,7 +12,7 @@ gamma_1 = 0.75;
 gamma_2 = 0.15;
 beta = 1.3;
 phi = 0.04;
-delta_1 = 3*10^4;
+delta_1 = 3 * 10^4;
 delta_2 = 0.2;
 delta_3 = 0.02;
 J = 20;
@@ -34,21 +34,21 @@ omega_e = 30;
 %% PUNTO 1 - Sistema in forma di stato
 
 x_2e = omega_e;
-x_1e = (delta_2 * x_2e + delta_3*x_2e^2) / delta_1;
+x_1e = (delta_2 * x_2e + delta_3 * x_2e^2) / delta_1;
 
-u_e = (acos(-(gamma_2/gamma_1)*30*8e-4+1)+phi)/beta;
+u_e = (acos(- (gamma_2 / gamma_1) * 30 * 8e-4 + 1) + phi) / beta;
 
-f_1 = gamma_1*(1-cos(beta*u_e-phi))-gamma_2*x_1e*x_2e;
-f_2 = 1/J*(delta_1*x_1e-delta_2*x_2e-delta_3*x_2e^2);
+f_1 = gamma_1 * (1 - cos(beta * u_e - phi)) - gamma_2 * x_1e * x_2e;
+f_2 = 1 / J * (delta_1 * x_1e - delta_2 * x_2e - delta_3 * x_2e^2);
 
 %% Sistema linearizzato
 % x_dot = A*x + B*u
 % y = C*x + D*u
 
 % Definiamo le matrici nel punto di equilibrio trovato [m_e,w_e]=[8e-4,30]
-A = [-gamma_2*x_2e, -gamma_2*x_1e;
-    delta_1/J    , -delta_2/J-(2*delta_3*x_2e)/J];
-B = [beta*gamma_1*sin(beta*u_e-phi); 0];
+A = [-gamma_2 * x_2e, -gamma_2 * x_1e;
+    delta_1 / J, -delta_2 / J - (2 * delta_3 * x_2e) / J];
+B = [beta * gamma_1 * sin(beta * u_e - phi); 0];
 C = [0, 1];
 D = 0;
 
@@ -63,7 +63,7 @@ GG = tf(NS, DS);
 
 % cof = [s+0.07  , 1500;
 %       1.2*10e-4, s+4.5];
-   
+
 % adj = transpose(cof);
 
 % check_N = (C*adj*B);
@@ -76,19 +76,19 @@ GG_poles = pole(GG);
 if 0
     GG
     GG_poles
-%    G_check;
-%    pole(G_check);
+    %    G_check;
+    %    pole(G_check);
     return;
 end
 
 %% Diagramma di Bode di G(s)
 
 % Definizione dell'intervallo di frequenze del diagramma di Bode
-omega_plot_min=10e-2;
-omega_plot_max=10e5;
+omega_plot_min = 10e-2;
+omega_plot_max = 10e5;
 
 figure(1);
-bode(GG,{omega_plot_min,omega_plot_max});
+bode(GG, {omega_plot_min, omega_plot_max});
 grid on, zoom on;
 
 % return;
@@ -107,7 +107,7 @@ grid on, zoom on;
 WW = 9;
 DD = 8;
 
-% errore a regime 
+% errore a regime
 e_star = 0.01;
 
 % PUNTO 2
@@ -116,7 +116,7 @@ Mf_spec = 55;
 % PUNTO 3 & 4
 % Sovraelongazione massima e tempo di assestamento all'5%
 s_100_spec = 0.05;
-T_al_spec = 0.08;
+T_a1_spec = 0.08;
 
 % PUNTO 5
 % attenuazione disturbo sull'uscita
@@ -148,92 +148,103 @@ omega_n_MAX = 1e6;
 % mu_g = 123.1*((s-4.458)(s-0.111))/(s^2+4.57s+0.495)
 % mu_g = 123.1 * (s-4.458)*(s-0.111)/(s^2+4.57s+0.495);
 
-mu_s = (DD+WW)/(e_star)-1;
+mu_s = (DD + WW) / (e_star) - 1;
 
 % L(s)=R(s)G(s) -> mu=L(0)=R(0)G(0) -> R(0)=mu/G(0)
 % guadagno minimo del regolatore ottenuto come L(0)/G(0)
-G_0 = abs(evalfr(GG,0));
+G_0 = abs(evalfr(GG, 0));
 RR_s = mu_s / G_0; % RR_s = 5.88
 
 % Sistema esteso
-GG_e = RR_s*GG;
+GG_e = RR_s * GG;
 
-
-%% Diagrammi di Bode di Ge con specifiche
-
-figure(2);
-hold on;
-
-% Calcolo specifiche S% => Margine di fase
-xi = Mf_spec;
-S_100 = 100*exp(-pi*xi/sqrt(1-xi^2))
-Mf_spec = xi*100; % Mf_spec = 83
-
-% Grafico dello sovraelongazione percentuale per trovare xi graficamente
 if 0
-   figure(10)
-   xi_plot = 1e-4 : 1e-4 : 1;
-   S_100_plot = 100*exp(-pi*xi_plot./sqrt(1-xi_plot.^2));
-   plot(xi_plot, S_100_plot, 'MarkerIndices', 10);
-   xlabel('Smorzamento (ξ)');
-   ylabel('Sovraelongazione percentuale (S%)');
-   grid on, zoom on
-   return;
+    figure(2)
+    h_GGe = bodeplot(GG_e);
+    grid on, zoom on;
+
+    return
 end
 
-% Disegna diagrammi di Bode di G_e con i margini di stabilità ed esce
-% Impostare a 0 per i diagrammi con le specifiche
-% if 1
-%     margin(GG_e);
-%     grid on, zoom on;
-%     return;
-% end
+figure(2)
+% SPECIFICHE SU d
+omega_d_min = 0.0001;
+omega_d_MAX = 1;
+Bnd_d_x = [omega_d_min; omega_d_MAX; omega_d_MAX; omega_d_min];
+Bnd_d_y = [A_d; A_d; -150; -150];
+patch(Bnd_d_x, Bnd_d_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+hold on;
 
-% % Specifiche su d
-% omega_d_min = 0.0001; % lower bound per il plot
-% Bnd_d_x = [omega_d_min; omega_d_MAX; omega_d_MAX; omega_d_min];
-% Bnd_d_y = [A_d; A_d; -150; -150];
-% patch(Bnd_d_x, Bnd_d_y,'r','FaceAlpha',0.2,'EdgeAlpha',0);
+if 0
+    h_GGe = bodeplot(GG_e);
+    grid on, zoom on;
+    return
+end
 
-% % Specifiche su n
-% Bnd_n_x = [omega_n_min; omega_n_MAX; omega_n_MAX; omega_n_min];
-% Bnd_n_y = [-A_n; -A_n; 100; 100];
-% patch(Bnd_n_x, Bnd_n_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+% SPECIFICHE SU n
+omega_n_min = 1e3;
+omega_n_MAX = 1e4;
+Bnd_n_x = [omega_n_min; omega_n_MAX; omega_n_MAX; omega_n_min];
+Bnd_n_y = [-A_n; -A_n; 100; 100];
+patch(Bnd_n_x, Bnd_n_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+hold on;
 
-% % Specifiche tempo d'assestamento (minima pulsazione di taglio)
-% omega_Ta_min = 1e-4; % lower bound per il plot
-% omega_Ta_MAX = 460/(Mf_spec*T_a1_spec); % omega_c >= 460/(Mf*T^*) ~ 3.69
-% Bnd_Ta_x = [omega_Ta_min; omega_Ta_MAX; omega_Ta_MAX; omega_Ta_min];
-% Bnd_Ta_y = [0; 0; -150; -150];
-% patch(Bnd_Ta_x, Bnd_Ta_y,'b','FaceAlpha',0.2,'EdgeAlpha',0);
+if 0
+    h_GGe = bodeplot(GG_e)
+    grid on, zoom on;
+    return
+end
 
-% % Legenda colori
-% Legend_mag = ["A_d"; "A_n"; "\omega_{c,min}"; "G(j\omega)"];
-% legend(Legend_mag);
-
-% % Plot Bode con margini di stabilità
-% margin(GG_e,{omega_plot_min,omega_plot_max});
-% grid on; zoom on;
-
-
-
-% % Specifiche sovraelongazione (margine di fase)
-% omega_c_min = omega_Ta_MAX;
-% omega_c_MAX = omega_n_min;
-
-% phi_spec = Mf_spec - 180;
-% phi_low = -270; % lower bound per il plot
-
-% Bnd_Mf_x = [omega_c_min; omega_c_MAX; omega_c_MAX; omega_c_min];
-% Bnd_Mf_y = [phi_spec; phi_spec; phi_low; phi_low];
-% patch(Bnd_Mf_x, Bnd_Mf_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+% SPECIFICHE SU u
+% omega_u_min = 200;
+% omega_u_MAX = 1e4;
+% Bnd_u_x = [omega_u_min; omega_u_MAX; omega_u_MAX; omega_u_min];
+% Bnd_u_y = [0; 0; 100; 100];
+% patch(Bnd_u_x, Bnd_u_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 % hold on;
 
-% % Legenda colori
-% Legend_arg = ["G(j\omega)"; "M_f"];
-% legend(Legend_arg);
+if 0
+    h_GGe = bodeplot(GG_e)
+    grid on, zoom on;
+    return
+end
 
-% % STOP qui per le specifiche
-% if 1
-%     return;
-% end
+% SPECIFICHE SU S%
+xi = 0.69;
+S_100 = 100 * exp(-pi * xi / sqrt(1 - xi^2))
+Mf_spec = xi * 100
+% return;
+
+% SPECIFICHE SU T_a
+omega_Ta_low = 1e-4; % lower bound just for the plot
+omega_Ta_MAX = 300 / (Mf_spec * T_a1_spec); % omega_c >= 300/(Mf*T^*) = 300/(69.1*0.08) ~ 54.27
+
+Bnd_Ta_x = [omega_Ta_low; omega_Ta_MAX; omega_Ta_MAX; omega_Ta_low];
+Bnd_Ta_y = [0; 0; -150; -150];
+patch(Bnd_Ta_x, Bnd_Ta_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+hold on;
+
+h_GGe = bodeplot(GG_e)
+grid on, zoom on;
+
+% STOP qui per disegnare solo le specifiche sul GUADAGNO
+if 0
+    return;
+end
+
+omega_c_min = 20;
+omega_c_MAX = 200;
+
+phi_spec = Mf_spec - 180;
+phi_low = -270; % lower bound just for the plot
+
+Bnd_Mf_x = [omega_c_min; omega_c_MAX; omega_c_MAX; omega_c_min];
+% Bnd_Mf_y = [-130; -130; -270; -270];
+Bnd_Mf_y = [phi_spec; phi_spec; phi_low; phi_low];
+patch(Bnd_Mf_x, Bnd_Mf_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+hold on;
+
+% STOP qui per le specifiche
+if 0
+    return
+end
