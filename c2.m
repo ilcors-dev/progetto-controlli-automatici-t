@@ -244,3 +244,76 @@ hold on;
 if 0
     return
 end
+
+%% Design del regolatore dinamico
+
+% Rete anticipatrice
+
+Mf_star = Mf_spec; % Mf_star = 55
+omega_c_star = 200;
+[mag_omega_c_star, arg_omega_c_star, omega_c_star] = bode(GG_e, omega_c_star)
+
+mag_omega_c_star_dB = 20 * log10(mag_omega_c_star)
+
+M_star = 10^(-mag_omega_c_star_dB / 20)
+phi_star = Mf_star - 180 - arg_omega_c_star;
+
+% Formule di inversione
+tau = (M_star - cos(phi_star * pi / 180)) / omega_c_star / sin(phi_star * pi / 180)
+alpha_tau = (cos(phi_star * pi / 180) - inv(M_star)) / omega_c_star / sin(phi_star * pi / 180)
+alpha = alpha_tau / tau
+
+if M_star <= 1
+    disp('Errore: M_start non soddisfa le specifiche (M_star > 1)')
+    return;
+end
+
+phi_star_rad = phi_star*pi/180
+if phi_star_rad < 0 | phi_star_rad > pi/2
+    disp('Errore: phi_star non soddisfa le specifiche: 0<phi_star<pi/2')
+    return;
+end
+
+check_flag = cos(phi_star*pi/180) - inv(M_star)
+if check_flag < 0
+    disp('Errore: alpha negativo');
+    return;
+end
+
+% return;
+
+%% Diagrammi di Bode con specifiche includendo regolatore dinamico
+
+R_d = (1 + tau*s)/(1 + alpha*tau*s); % rete anticipatrice
+% R_d = (1 + 0.12*s + (0.079*s)^2) / ((1 + 4*s)*(1 + 0.0033*s)) % CSD
+LL = R_d*GG_e; % funzione di anello
+
+figure(3);
+hold on;
+
+% Legenda colori
+Legend_mag = ["A_d"; "A_n"; "\omega_{c,min}"; "G(j\omega)"];
+
+% Specifiche su ampiezza
+patch(Bnd_d_x, Bnd_d_y,'r','FaceAlpha',0.2,'EdgeAlpha',0);
+patch(Bnd_n_x, Bnd_n_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+patch(Bnd_Ta_x, Bnd_Ta_y,'b','FaceAlpha',0.2,'EdgeAlpha',0);
+legend(Legend_mag);
+
+% Plot Bode con margini di stabilità
+margin(LL,{omega_plot_min,omega_plot_max});
+grid on; zoom on;
+
+% Legenda colori
+Legend_arg = ["G(j\omega)"; "M_f"];
+legend(Legend_arg);
+
+% Specifiche su fase
+patch(Bnd_Mf_x, Bnd_Mf_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+hold on;
+legend(Legend_arg);
+
+% STOP qui per sistema con controllore dinamico + specifiche
+if 0
+    return;
+end
