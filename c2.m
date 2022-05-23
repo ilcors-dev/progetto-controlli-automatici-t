@@ -121,13 +121,14 @@ T_a1_spec = 0.08;
 % PUNTO 5
 % attenuazione disturbo sull'uscita
 A_d = 55;
+omega_d_min = 0.00001;
 omega_d_MAX = 0.05;
 
 % PUNTO 6
 % attenuazione disturbo di misura
 A_n = 45;
-omega_n_MIN = 1e3;
-omega_n_MAX = 1e6;
+omega_n_MIN = 8*1e3;
+omega_n_MAX = 2*1e6;
 
 %% Regolatore statico
 
@@ -168,10 +169,8 @@ end
 
 figure(2)
 % SPECIFICHE SU d
-omega_d_min = 0.0001;
-omega_d_MAX = 1;
 Bnd_d_x = [omega_d_min; omega_d_MAX; omega_d_MAX; omega_d_min];
-Bnd_d_y = [A_d; A_d; -150; -150];
+Bnd_d_y = [A_d; A_d; -200; -200];
 patch(Bnd_d_x, Bnd_d_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
 
@@ -182,9 +181,7 @@ if 0
 end
 
 % SPECIFICHE SU n
-omega_n_min = 1e3;
-omega_n_MAX = 1e4;
-Bnd_n_x = [omega_n_min; omega_n_MAX; omega_n_MAX; omega_n_min];
+Bnd_n_x = [omega_n_MIN; omega_n_MAX; omega_n_MAX; omega_n_MIN];
 Bnd_n_y = [-A_n; -A_n; 100; 100];
 patch(Bnd_n_x, Bnd_n_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
@@ -216,11 +213,11 @@ Mf_spec = xi * 100
 % return;
 
 % SPECIFICHE SU T_a
-omega_Ta_low = 1e-4; % lower bound just for the plot
+omega_Ta_low = 1e-8; % lower bound just for the plot
 omega_Ta_MAX = 300 / (Mf_spec * T_a1_spec); % omega_c >= 300/(Mf*T^*) = 300/(69.1*0.08) ~ 54.27
 
 Bnd_Ta_x = [omega_Ta_low; omega_Ta_MAX; omega_Ta_MAX; omega_Ta_low];
-Bnd_Ta_y = [0; 0; -150; -150];
+Bnd_Ta_y = [0; 0; -200; -200];
 patch(Bnd_Ta_x, Bnd_Ta_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
 
@@ -232,14 +229,13 @@ if 0
     return;
 end
 
-omega_c_min = 20;
-omega_c_MAX = 200;
+omega_c_min = omega_Ta_MAX;
+omega_c_MAX = omega_n_MIN;
 
 phi_spec = Mf_spec - 180;
 phi_low = -270; % lower bound just for the plot
 
 Bnd_Mf_x = [omega_c_min; omega_c_MAX; omega_c_MAX; omega_c_min];
-% Bnd_Mf_y = [-130; -130; -270; -270];
 Bnd_Mf_y = [phi_spec; phi_spec; phi_low; phi_low];
 patch(Bnd_Mf_x, Bnd_Mf_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
