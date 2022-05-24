@@ -249,7 +249,7 @@ end
 
 % Rete anticipatrice
 
-Mf_star = Mf_spec; % Mf_star = 55
+Mf_star = Mf_spec; % Mf_star = 69
 omega_c_star = 200;
 [mag_omega_c_star, arg_omega_c_star, omega_c_star] = bode(GG_e, omega_c_star)
 
@@ -285,7 +285,7 @@ end
 %% Diagrammi di Bode con specifiche includendo regolatore dinamico
 
 R_d = (1 + tau*s)/(1 + alpha*tau*s); % rete anticipatrice
-% R_d = (1 + 0.12*s + (0.079*s)^2) / ((1 + 4*s)*(1 + 0.0033*s)) % CSD
+
 LL = R_d*GG_e; % funzione di anello
 
 figure(3);
@@ -317,3 +317,84 @@ legend(Legend_arg);
 if 0
     return;
 end
+
+%% Check prestazioni in anello chiuso
+%% richiesta: w(t) = 0.75 * 1(t)
+
+% Funzione di sensitività complementare
+FF = LL/(1+LL);
+
+% Risposta al gradino
+figure(4);
+
+WW = 0.75
+
+T_simulation = 5;
+[y_step,t_step] = step(WW*FF, 5);
+plot(t_step,y_step,'b');
+grid on, zoom on, hold on;
+
+% vincolo sovraelongazione
+patch([0,T_simulation,T_simulation,0],[WW*(1+s_100_spec),WW*(1+s_100_spec),WW+1,WW+1],'r','FaceAlpha',0.3,'EdgeAlpha',0.5);
+ylim([0,WW+1]);
+
+% vincolo tempo di assestamento all'1%
+LV = abs(evalfr(WW*FF,0)); % valore limite gradino: W*F(0)
+patch([T_a1_spec,T_simulation,T_simulation,T_a1_spec],[LV*(1-0.01),LV*(1-0.01),0,0],'g','FaceAlpha',0.1,'EdgeAlpha',0.5);
+patch([T_a1_spec,T_simulation,T_simulation,T_a1_spec],[LV*(1+0.01),LV*(1+0.01),LV+1,LV+1],'g','FaceAlpha',0.1,'EdgeAlpha',0.1);
+
+Legend_step = ["Risposta al gradino"; "Vincolo sovraelongazione"; "Vincolo tempo di assestamento"];
+legend(Legend_step);
+
+if 0
+    return;
+end
+
+%% Check disturbo in uscita
+% d(t) = \sum_{k=1}^{4} 0.05 \cdot \sin(0.01kt)
+
+% Funzione di sensitività
+SS = 1/(1+LL);
+figure(6);
+
+% Simulazione disturbo a pulsazione 0.05
+omega_d = 0.01;
+tt = (0:1e-2:1e3)';
+syms k
+
+dd=0;
+for k=1:4
+    dd = dd + 0.05*sin(omega_d*tt*k);    
+end
+
+y_d = lsim(SS,dd,tt);
+hold on, grid on, zoom on
+plot(tt,dd,'m')
+plot(tt,y_d,'b')
+grid on
+legend('dd','y_d')
+
+%% Check disturbo di misura
+% n(t) = \sum_{k=1}^{4}0.02 \cdot \sin(8 \cdot 10^{3}kt)
+
+% Funzione di sensitività complementare
+FF = -LL/(1+LL);
+
+figure(7);
+
+% Simulazione disturbo a pulsazione 8*10^3
+omega_n = 8*1e3;
+tt = (0:1e-2:1e3)';
+syms k
+
+nn=0;
+for k=1:4
+    nn = nn + 0.02*sin(omega_n*tt*k);    
+end
+
+y_n = lsim(FF,nn,tt);
+hold on, grid on, zoom on
+plot(tt,nn,'m')
+plot(tt,y_n,'b')
+grid on
+legend('nn','y_n')
