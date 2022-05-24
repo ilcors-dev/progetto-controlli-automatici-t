@@ -257,10 +257,11 @@ mag_omega_c_star_dB = 20 * log10(mag_omega_c_star)
 
 M_star = 10^(-mag_omega_c_star_dB / 20)
 phi_star = Mf_star - 180 - arg_omega_c_star;
+phi_star_rad = phi_star*pi/180
 
 % Formule di inversione
-tau = (M_star - cos(phi_star * pi / 180)) / omega_c_star / sin(phi_star * pi / 180)
-alpha_tau = (cos(phi_star * pi / 180) - inv(M_star)) / omega_c_star / sin(phi_star * pi / 180)
+tau = (M_star - cos(phi_star_rad)) / (omega_c_star * sin(phi_star_rad))
+alpha_tau = (cos(phi_star_rad) - inv(M_star)) / (omega_c_star * sin(phi_star_rad))
 alpha = alpha_tau / tau
 
 if M_star <= 1
@@ -268,7 +269,6 @@ if M_star <= 1
     return;
 end
 
-phi_star_rad = phi_star*pi/180
 if phi_star_rad < 0 | phi_star_rad > pi/2
     disp('Errore: phi_star non soddisfa le specifiche: 0<phi_star<pi/2')
     return;
@@ -378,6 +378,7 @@ legend('dd','y_d')
 % n(t) = \sum_{k=1}^{4}0.02 \cdot \sin(8 \cdot 10^{3}kt)
 
 % Funzione di sensitività complementare
+% FF = -0.00001*GG_e/(1+0.00001*GG_e);
 FF = -LL/(1+LL);
 
 figure(7);
