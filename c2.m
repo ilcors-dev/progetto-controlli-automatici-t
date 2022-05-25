@@ -318,19 +318,26 @@ if 0
     return;
 end
 
-%% Check prestazioni in anello chiuso
-%% richiesta: w(t) = 0.75 * 1(t)
+%% Check prestazioni
+
+% Funzione di sensitività
+SS = 1/(1+LL);
 
 % Funzione di sensitività complementare
 FF = LL/(1+LL);
+
+tt = (0:1e-2:1e3)';
+
+%% Check prestazioni in anello chiuso
+%% richiesta: w(t) = 0.75 * 1(t)
 
 % Risposta al gradino
 figure(4);
 
 WW = 0.75
 
-T_simulation = 5;
-[y_step,t_step] = step(WW*FF, 5);
+T_simulation = 0.1;
+[y_step,t_step] = step(WW*FF, T_simulation);
 plot(t_step,y_step,'b');
 grid on, zoom on, hold on;
 
@@ -353,18 +360,16 @@ end
 %% Check disturbo in uscita
 % d(t) = \sum_{k=1}^{4} 0.05 \cdot \sin(0.01kt)
 
-% Funzione di sensitività
-SS = 1/(1+LL);
 figure(6);
 
 % Simulazione disturbo a pulsazione 0.05
 omega_d = 0.01;
-tt = (0:1e-2:1e3)';
 syms k
 
+DD=0.05;
 dd=0;
 for k=1:4
-    dd = dd + 0.05*sin(omega_d*tt*k);    
+    dd = dd + DD*sin(omega_d*tt*k);    
 end
 
 y_d = lsim(SS,dd,tt);
@@ -377,25 +382,27 @@ legend('dd','y_d')
 %% Check disturbo di misura
 % n(t) = \sum_{k=1}^{4}0.02 \cdot \sin(8 \cdot 10^{3}kt)
 
-% Funzione di sensitività complementare
-% FF = -0.00001*GG_e/(1+0.00001*GG_e);
-FF = -LL/(1+LL);
-
 figure(7);
 
 % Simulazione disturbo a pulsazione 8*10^3
 omega_n = 8*1e3;
-tt = (0:1e-2:1e3)';
 syms k
 
+NN=0.02;
 nn=0;
 for k=1:4
-    nn = nn + 0.02*sin(omega_n*tt*k);    
+    nn = nn + NN*sin(omega_n*tt*k);    
 end
 
-y_n = lsim(FF,nn,tt);
+y_n = lsim(-FF,nn,tt);
 hold on, grid on, zoom on
 plot(tt,nn,'m')
 plot(tt,y_n,'b')
 grid on
 legend('nn','y_n')
+
+% Test uscita totale
+y_step=step(WW*FF,tt);
+figure(8);
+y_tot = y_d+y_n+y_step;
+plot(tt,y_tot)
