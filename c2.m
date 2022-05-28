@@ -127,8 +127,8 @@ omega_d_MAX = 0.05;
 % PUNTO 6
 % attenuazione disturbo di misura
 A_n = 45;
-omega_n_MIN = 8*1e3;
-omega_n_MAX = 2*1e6;
+omega_n_MIN = 8 * 1e3;
+omega_n_MAX = 2 * 1e6;
 
 %% Regolatore statico
 
@@ -257,7 +257,7 @@ mag_omega_c_star_dB = 20 * log10(mag_omega_c_star)
 
 M_star = 10^(-mag_omega_c_star_dB / 20)
 phi_star = Mf_star - 180 - arg_omega_c_star;
-phi_star_rad = phi_star*pi/180
+phi_star_rad = phi_star * pi / 180
 
 % Formule di inversione
 tau = (M_star - cos(phi_star_rad)) / (omega_c_star * sin(phi_star_rad))
@@ -269,12 +269,13 @@ if M_star <= 1
     return;
 end
 
-if phi_star_rad < 0 | phi_star_rad > pi/2
+if phi_star_rad < 0 | phi_star_rad > pi / 2
     disp('Errore: phi_star non soddisfa le specifiche: 0<phi_star<pi/2')
     return;
 end
 
-check_flag = cos(phi_star*pi/180) - inv(M_star)
+check_flag = cos(phi_star * pi / 180) - inv(M_star)
+
 if check_flag < 0
     disp('Errore: alpha negativo');
     return;
@@ -284,9 +285,20 @@ end
 
 %% Diagrammi di Bode con specifiche includendo regolatore dinamico
 
-R_d = (1 + tau*s)/(1 + alpha*tau*s); % rete anticipatrice
+R_d = (1 + tau * s) / (1 + alpha * tau * s); % rete anticipatrice
 
-LL = R_d*GG_e; % funzione di anello
+LL = R_d * GG_e; % funzione di anello
+
+% check regolatore fisicamente realizzabile
+% poli-zero >= 0
+check_reg = R_d * RR_s;
+
+if size(pole(check_reg)) - size(zero(check_reg)) < 0
+    fprintf('Il regolatore NON è fisicamente realizzabile!');
+    return;
+else
+    fprintf('Il regolatore è fisicamente realizzabile!');
+end
 
 figure(3);
 hold on;
@@ -295,13 +307,13 @@ hold on;
 Legend_mag = ["A_d"; "A_n"; "\omega_{c,min}"; "G(j\omega)"];
 
 % Specifiche su ampiezza
-patch(Bnd_d_x, Bnd_d_y,'r','FaceAlpha',0.2,'EdgeAlpha',0);
-patch(Bnd_n_x, Bnd_n_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
-patch(Bnd_Ta_x, Bnd_Ta_y,'b','FaceAlpha',0.2,'EdgeAlpha',0);
+patch(Bnd_d_x, Bnd_d_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+patch(Bnd_n_x, Bnd_n_y, 'g', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
+patch(Bnd_Ta_x, Bnd_Ta_y, 'b', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 legend(Legend_mag);
 
 % Plot Bode con margini di stabilità
-margin(LL,{omega_plot_min,omega_plot_max});
+margin(LL, {omega_plot_min, omega_plot_max});
 grid on; zoom on;
 
 % Legenda colori
@@ -309,7 +321,7 @@ Legend_arg = ["G(j\omega)"; "M_f"];
 legend(Legend_arg);
 
 % Specifiche su fase
-patch(Bnd_Mf_x, Bnd_Mf_y,'g','FaceAlpha',0.2,'EdgeAlpha',0);
+patch(Bnd_Mf_x, Bnd_Mf_y, 'g', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
 legend(Legend_arg);
 
@@ -321,10 +333,10 @@ end
 %% Check prestazioni
 
 % Funzione di sensitività
-SS = 1/(1+LL);
+SS = 1 / (1 + LL);
 
 % Funzione di sensitività complementare
-FF = LL/(1+LL);
+FF = LL / (1 + LL);
 
 tt = (0:1e-2:1e3)';
 
@@ -337,18 +349,18 @@ figure(4);
 WW = 0.75
 
 T_simulation = 0.1;
-[y_step,t_step] = step(WW*FF, T_simulation);
-plot(t_step,y_step,'b');
+[y_step, t_step] = step(WW * FF, T_simulation);
+plot(t_step, y_step, 'b');
 grid on, zoom on, hold on;
 
 % vincolo sovraelongazione
-patch([0,T_simulation,T_simulation,0],[WW*(1+s_100_spec),WW*(1+s_100_spec),WW+1,WW+1],'r','FaceAlpha',0.3,'EdgeAlpha',0.5);
-ylim([0,WW+1]);
+patch([0, T_simulation, T_simulation, 0], [WW * (1 + s_100_spec), WW * (1 + s_100_spec), WW + 1, WW + 1], 'r', 'FaceAlpha', 0.3, 'EdgeAlpha', 0.5);
+ylim([0, WW + 1]);
 
 % vincolo tempo di assestamento all'1%
-LV = abs(evalfr(WW*FF,0)); % valore limite gradino: W*F(0)
-patch([T_a1_spec,T_simulation,T_simulation,T_a1_spec],[LV*(1-0.01),LV*(1-0.01),0,0],'g','FaceAlpha',0.1,'EdgeAlpha',0.5);
-patch([T_a1_spec,T_simulation,T_simulation,T_a1_spec],[LV*(1+0.01),LV*(1+0.01),LV+1,LV+1],'g','FaceAlpha',0.1,'EdgeAlpha',0.1);
+LV = abs(evalfr(WW * FF, 0)); % valore limite gradino: W*F(0)
+patch([T_a1_spec, T_simulation, T_simulation, T_a1_spec], [LV * (1 - 0.01), LV * (1 - 0.01), 0, 0], 'g', 'FaceAlpha', 0.1, 'EdgeAlpha', 0.5);
+patch([T_a1_spec, T_simulation, T_simulation, T_a1_spec], [LV * (1 + 0.01), LV * (1 + 0.01), LV + 1, LV + 1], 'g', 'FaceAlpha', 0.1, 'EdgeAlpha', 0.1);
 
 Legend_step = ["Risposta al gradino"; "Vincolo sovraelongazione"; "Vincolo tempo di assestamento"];
 legend(Legend_step);
@@ -366,18 +378,19 @@ figure(6);
 omega_d = 0.01;
 syms k
 
-DD=0.05;
-dd=0;
-for k=1:4
-    dd = dd + DD*sin(omega_d*tt*k);    
+DD = 0.05;
+dd = 0;
+
+for k = 1:4
+    dd = dd + DD * sin(omega_d * tt * k);
 end
 
-y_d = lsim(SS,dd,tt);
+y_d = lsim(SS, dd, tt);
 hold on, grid on, zoom on
-plot(tt,dd,'m')
-plot(tt,y_d,'b')
+plot(tt, dd, 'm')
+plot(tt, y_d, 'b')
 grid on
-legend('dd','y_d')
+legend('dd', 'y_d')
 
 %% Check disturbo di misura
 % n(t) = \sum_{k=1}^{4}0.02 \cdot \sin(8 \cdot 10^{3}kt)
@@ -385,24 +398,25 @@ legend('dd','y_d')
 figure(7);
 
 % Simulazione disturbo a pulsazione 8*10^3
-omega_n = 8*1e3;
+omega_n = 8 * 1e3;
 syms k
 
-NN=0.02;
-nn=0;
-for k=1:4
-    nn = nn + NN*sin(omega_n*tt*k);    
+NN = 0.02;
+nn = 0;
+
+for k = 1:4
+    nn = nn + NN * sin(omega_n * tt * k);
 end
 
-y_n = lsim(-FF,nn,tt);
+y_n = lsim(-FF, nn, tt);
 hold on, grid on, zoom on
-plot(tt,nn,'m')
-plot(tt,y_n,'b')
+plot(tt, nn, 'm')
+plot(tt, y_n, 'b')
 grid on
-legend('nn','y_n')
+legend('nn', 'y_n')
 
 % Test uscita totale
-y_step=step(WW*FF,tt);
+y_step = step(WW * FF, tt);
 figure(8);
-y_tot = y_d+y_n+y_step;
-plot(tt,y_tot)
+y_tot = y_d + y_n + y_step;
+plot(tt, y_tot)
