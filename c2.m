@@ -242,7 +242,7 @@ hold on;
 
 % STOP qui per le specifiche
 if 0
-    return
+    return;
 end
 
 %% Design del regolatore dinamico
@@ -338,7 +338,7 @@ SS = 1 / (1 + LL);
 % Funzione di sensitività complementare
 FF = LL / (1 + LL);
 
-tt = (0:1e-2:1e3)';
+tt = (0:1e1:1e3)';
 
 %% Check prestazioni in anello chiuso
 %% richiesta: w(t) = 0.75 * 1(t)
@@ -346,7 +346,7 @@ tt = (0:1e-2:1e3)';
 % Risposta al gradino
 figure(4);
 
-WW = 0.75
+WW = 0.75;
 
 T_simulation = 0.1;
 [y_step, t_step] = step(WW * FF, T_simulation);
