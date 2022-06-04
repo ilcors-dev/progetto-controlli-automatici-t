@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Controllo del motore di un’automobile                                                %
+% Controllo del motore di un automobile, Progetto C2                                   %
 % Bernardini Claudio                                                                   %
 % Corsetti Luca                                                                        %
 % Straccali Leonardo                                                                   %
@@ -21,10 +21,10 @@ omega_e = 30;
 
 % Dinamica del sistema
 % m_dot = gamma_1*(1-cos(beta*theta-phi))-gamma_2*omega*m
-% J*omega = delta_1*m-delta_2*omega-delta_3*omega^2
+% J*omega_dot = delta_1*m-delta_2*omega-delta_3*omega^2
 
 %% LEGENDA DATI
-% theta -> angolo di accelerazione
+% theta -> angolo di accelerazione variabile d'ingresso
 % gamma_1*(1-cos(beta*theta-phi)) -> caratteristica intrinseca della valvola.
 % J -> momento d'inerzia
 % delta_1*m -> coppia trasmessa all'albero motore
@@ -36,7 +36,7 @@ omega_e = 30;
 x_2e = omega_e;
 x_1e = (delta_2 * x_2e + delta_3 * x_2e^2) / delta_1;
 
-u_e = (acos(- (gamma_2 / gamma_1) * 30 * 8e-4 + 1) + phi) / beta;
+u_e = (acos(- (gamma_2 / gamma_1) * x_2e * x_1e + 1) + phi) / beta;
 
 f_1 = gamma_1 * (1 - cos(beta * u_e - phi)) - gamma_2 * x_1e * x_2e;
 f_2 = 1 / J * (delta_1 * x_1e - delta_2 * x_2e - delta_3 * x_2e^2);
@@ -45,7 +45,7 @@ f_2 = 1 / J * (delta_1 * x_1e - delta_2 * x_2e - delta_3 * x_2e^2);
 % x_dot = A*x + B*u
 % y = C*x + D*u
 
-% Definiamo le matrici nel punto di equilibrio trovato [m_e,w_e]=[8e-4,30]
+% Definiamo le matrici nel punto di equilibrio trovato x_e=[m_e,w_e]=[8e-4,30]
 A = [-gamma_2 * x_2e, -gamma_2 * x_1e;
     delta_1 / J, -delta_2 / J - (2 * delta_3 * x_2e) / J];
 B = [beta * gamma_1 * sin(beta * u_e - phi); 0];
@@ -58,7 +58,7 @@ s = tf('s');
 GG = tf(NS, DS);
 
 % oppure facendo i conti..
-% sIA = [s+4.5, -1.2*10e-4;
+% sI-A = [s+4.5, -1.2*10e-4;
 %       -1500 ,  s+0.07];
 
 % cof = [s+0.07  , 1500;
@@ -136,28 +136,16 @@ omega_n_MAX = 2 * 1e6;
 % sappiamo che e_inf = (D + W) / (1 + mu)
 % mu = mu_s*mu_g dove mu_g è fisso ed è dato da G(s)
 % pertanto mu = (D + W) / e_star - 1
-% mu = (DD + WW) / e_star - 1;
 
-% per trovaare mu_g è necessario riscrivere G(s) come
-% G(s) = mu_g / ((1+T_1s)*(1+T_2s)) dove
-% T_1s e T_2s sono i poli trovati sotto forma di costanti di tempo
-% T_1s = -1 / GG_poles(1);
-% T_2s = -1 / GG_poles(2);
-
-% eguagliando le G(s) trovate possiamo ricavare mu_g
-% G(s) = 123.1 / (s^2+4.57s+0.495) = mu_g/((s-4.458)(s-0.111))
-% mu_g = 123.1*((s-4.458)(s-0.111))/(s^2+4.57s+0.495)
-% mu_g = 123.1 * (s-4.458)*(s-0.111)/(s^2+4.57s+0.495);
-
-mu_s = (DD + WW) / (e_star) - 1;
-
-% L(s)=R(s)G(s) -> mu=L(0)=R(0)G(0) -> R(0)=mu/G(0)
+% L(s)=R(s)G(s) -> mu=L(0)=R(0)G(0) -> mu_s=R(0)=mu/G(0)
 % guadagno minimo del regolatore ottenuto come L(0)/G(0)
 G_0 = abs(evalfr(GG, 0));
-RR_s = mu_s / G_0; % RR_s = 5.88
+mu_s = ((DD + WW) / (e_star) - 1)/G_0;
+
+RR_s = mu_s; % RR_s = 5.88
 
 % Sistema esteso
-GG_e = RR_s * GG;
+GG_e = RR_s * GG; % GG_e = mu_s * GG
 
 if 0
     figure(2)
@@ -168,6 +156,8 @@ if 0
 end
 
 figure(2)
+% PATCH sul diagramma di Bode
+
 % SPECIFICHE SU d
 Bnd_d_x = [omega_d_min; omega_d_MAX; omega_d_MAX; omega_d_min];
 Bnd_d_y = [A_d; A_d; -200; -200];
@@ -192,25 +182,10 @@ if 0
     return
 end
 
-% SPECIFICHE SU u
-% omega_u_min = 200;
-% omega_u_MAX = 1e4;
-% Bnd_u_x = [omega_u_min; omega_u_MAX; omega_u_MAX; omega_u_min];
-% Bnd_u_y = [0; 0; 100; 100];
-% patch(Bnd_u_x, Bnd_u_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
-% hold on;
-
-if 0
-    h_GGe = bodeplot(GG_e)
-    grid on, zoom on;
-    return
-end
-
 % SPECIFICHE SU S%
 xi = 0.69;
 S_100 = 100 * exp(-pi * xi / sqrt(1 - xi^2))
 Mf_spec = xi * 100
-% return;
 
 % SPECIFICHE SU T_a
 omega_Ta_low = 1e-8; % lower bound just for the plot
@@ -255,14 +230,14 @@ omega_c_star = 200;
 
 mag_omega_c_star_dB = 20 * log10(mag_omega_c_star)
 
-M_star = 10^(-mag_omega_c_star_dB / 20)
-phi_star = Mf_star - 180 - arg_omega_c_star;
-phi_star_rad = phi_star * pi / 180
+M_star = 10^(-mag_omega_c_star_dB / 20) % M_star = 47.535
+phi_star = Mf_star - 180 - arg_omega_c_star; % phi_star = 1.181
+phi_star_rad = phi_star * pi / 180 % phi_star_rad = 206.193 rad
 
 % Formule di inversione
-tau = (M_star - cos(phi_star_rad)) / (omega_c_star * sin(phi_star_rad))
-alpha_tau = (cos(phi_star_rad) - inv(M_star)) / (omega_c_star * sin(phi_star_rad))
-alpha = alpha_tau / tau
+tau = (M_star - cos(phi_star_rad)) / (omega_c_star * sin(phi_star_rad)) % tau = 0.2549 rad
+alpha_tau = (cos(phi_star_rad) - inv(M_star)) / (omega_c_star * sin(phi_star_rad)) % alpha_tau = 0.0019 rad
+alpha = alpha_tau / tau % alpha = 0.00745 rad
 
 if M_star <= 1
     disp('Errore: M_start non soddisfa le specifiche (M_star > 1)')
@@ -338,7 +313,9 @@ SS = 1 / (1 + LL);
 % Funzione di sensitività complementare
 FF = LL / (1 + LL);
 
-tt = (0:1e1:1e3)';
+% tt potrebbe essere suddiviso in più intervalli di cambionamento a seconda
+% del caso di utilizzo, per comodità ne scegliamo uno unico
+tt = (0:1e1:1e3)'; 
 
 %% Check prestazioni in anello chiuso
 %% richiesta: w(t) = 0.75 * 1(t)
@@ -353,11 +330,11 @@ T_simulation = 0.1;
 plot(t_step, y_step, 'b');
 grid on, zoom on, hold on;
 
-% vincolo sovraelongazione
+% vincolo sovraelongazione minore uguale all'5%
 patch([0, T_simulation, T_simulation, 0], [WW * (1 + s_100_spec), WW * (1 + s_100_spec), WW + 1, WW + 1], 'r', 'FaceAlpha', 0.3, 'EdgeAlpha', 0.5);
 ylim([0, WW + 1]);
 
-% vincolo tempo di assestamento all'1%
+% vincolo tempo di assestamento all'5%
 LV = abs(evalfr(WW * FF, 0)); % valore limite gradino: W*F(0)
 patch([T_a1_spec, T_simulation, T_simulation, T_a1_spec], [LV * (1 - 0.01), LV * (1 - 0.01), 0, 0], 'g', 'FaceAlpha', 0.1, 'EdgeAlpha', 0.5);
 patch([T_a1_spec, T_simulation, T_simulation, T_a1_spec], [LV * (1 + 0.01), LV * (1 + 0.01), LV + 1, LV + 1], 'g', 'FaceAlpha', 0.1, 'EdgeAlpha', 0.1);
@@ -370,8 +347,6 @@ if 0
 end
 
 %% Check disturbo in uscita
-% d(t) = \sum_{k=1}^{4} 0.05 \cdot \sin(0.01kt)
-
 figure(6);
 
 % Simulazione disturbo a pulsazione 0.05
@@ -381,6 +356,7 @@ syms k
 DD = 0.05;
 dd = 0;
 
+% d(t) = sum_{k=1}^{4} 0.05 * sin(0.01kt)
 for k = 1:4
     dd = dd + DD * sin(omega_d * tt * k);
 end
@@ -393,7 +369,6 @@ grid on
 legend('dd', 'y_d')
 
 %% Check disturbo di misura
-% n(t) = \sum_{k=1}^{4}0.02 \cdot \sin(8 \cdot 10^{3}kt)
 
 figure(7);
 
@@ -404,6 +379,7 @@ syms k
 NN = 0.02;
 nn = 0;
 
+% n(t) = sum_{k=1}^{4} 0.02 * sin(8 * 10^3 * kt)
 for k = 1:4
     nn = nn + NN * sin(omega_n * tt * k);
 end
