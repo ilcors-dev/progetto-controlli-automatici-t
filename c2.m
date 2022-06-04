@@ -84,8 +84,8 @@ end
 %% Diagramma di Bode di G(s)
 
 % Definizione dell'intervallo di frequenze del diagramma di Bode
-omega_plot_min = 10e-2;
-omega_plot_max = 10e5;
+omega_plot_min = 10e-6;
+omega_plot_max = 10e6;
 
 figure(1);
 bode(GG, {omega_plot_min, omega_plot_max});
@@ -196,7 +196,7 @@ Bnd_Ta_y = [0; 0; -200; -200];
 patch(Bnd_Ta_x, Bnd_Ta_y, 'r', 'FaceAlpha', 0.2, 'EdgeAlpha', 0);
 hold on;
 
-h_GGe = bodeplot(GG_e)
+h_GGe = bodeplot(GG_e,{omega_plot_min, omega_plot_max})
 grid on, zoom on;
 
 % STOP qui per disegnare solo le specifiche sul GUADAGNO
@@ -289,7 +289,7 @@ legend(Legend_mag);
 
 % Plot Bode con margini di stabilità
 margin(LL, {omega_plot_min, omega_plot_max});
-grid on; zoom on;
+grid on;
 
 % Legenda colori
 Legend_arg = ["G(j\omega)"; "M_f"];
@@ -301,7 +301,7 @@ hold on;
 legend(Legend_arg);
 
 % STOP qui per sistema con controllore dinamico + specifiche
-if 0
+if 1
     return;
 end
 
