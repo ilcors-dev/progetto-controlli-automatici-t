@@ -301,7 +301,7 @@ hold on;
 legend(Legend_arg);
 
 % STOP qui per sistema con controllore dinamico + specifiche
-if 1
+if 0
     return;
 end
 
@@ -315,7 +315,7 @@ FF = LL / (1 + LL);
 
 % tt potrebbe essere suddiviso in più intervalli di cambionamento a seconda
 % del caso di utilizzo, per comodità ne scegliamo uno unico
-tt = (0:1e1:1e3)'; 
+tt = (0:1e-4:1e1)'; 
 
 %% Check prestazioni in anello chiuso
 %% richiesta: w(t) = 0.75 * 1(t)
